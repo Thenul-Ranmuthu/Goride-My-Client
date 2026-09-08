@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/*  GoRide design tokens                                               */
+/*  Theme lineage: QuickRide (Poppins · brand green · black CTAs ·     */
+/*  zinc surfaces · rounded-lg/xl · bottom sheets)                     */
+/* ------------------------------------------------------------------ */
+@theme {
+  /* Typography */
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Brand green scale (anchored on #52d56a from the logo) */
+  --color-brand-50: #eefbf0;
+  --color-brand-100: #d6f6dc;
+  --color-brand-200: #afecbb;
+  --color-brand-300: #7fe094;
+  --color-brand-400: #52d56a;
+  --color-brand-500: #2fc24c;
+  --color-brand-600: #22a03d;
+  --color-brand-700: #1d7e33;
+  --color-brand-800: #1b642c;
+  --color-brand-900: #175226;
+  --color-brand-950: #092e14;
+
+  /* Driver accent (the "captain" orange from the theme) */
+  --color-driver-50: #fff7ed;
+  --color-driver-100: #ffedd5;
+  --color-driver-200: #fed7aa;
+  --color-driver-300: #fdba74;
+  --color-driver-400: #fb923c;
+  --color-driver-500: #f97316;
+  --color-driver-600: #ea580c;
+  --color-driver-700: #c2410c;
+
+  /* Admin navy (from the pitch deck) */
+  --color-navy-700: #1e3352;
+  --color-navy-800: #142740;
+  --color-navy-900: #0f1c30;
+  --color-navy-950: #0b1220;
+
+  /* Ink & surfaces */
+  --color-ink: #0a0a0a;
+  --color-ink-2: #27272a;
+  --color-muted: #71717a;
+  --color-surface: #ffffff;
+  --color-surface-2: #f4f4f5;
+  --color-surface-3: #e4e4e7;
+
+  /* Semantic */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #dc2626;
+  --color-info: #2563eb;
+
+  /* Radii */
+  --radius-sheet: 1.25rem;
+
+  /* Shadows */
+  --shadow-sheet: 0 -10px 40px -10px rgb(0 0 0 / 0.18);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px -12px rgb(0 0 0 / 0.12);
+  --shadow-float: 0 12px 32px -8px rgb(0 0 0 / 0.22);
+
+  /* Motion */
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-radar: radar 2s var(--ease-spring) infinite;
+  --animate-radar-delayed: radar 2s var(--ease-spring) 0.7s infinite;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-float: float 5s ease-in-out infinite;
+  --animate-float-slow: float 7s ease-in-out infinite;
+  --animate-pulse-dot: pulse-dot 1.4s ease-in-out infinite;
+  --animate-slide-up: slide-up 0.45s var(--ease-spring) both;
+  --animate-fade-in: fade-in 0.35s ease-out both;
+  --animate-scan: scan 2.2s linear infinite;
+
+  @keyframes radar {
+    0% { transform: scale(0.35); opacity: 0.9; }
+    100% { transform: scale(1); opacity: 0; }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes pulse-dot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(0.6); opacity: 0.5; }
+  }
+  @keyframes slide-up {
+    from { transform: translateY(24px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes scan {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Base                                                               */
+/* ------------------------------------------------------------------ */
+@layer base {
+  html {
+    height: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    min-height: 100%;
+    background: #f4f4f5;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: 500; /* theme default: Poppins Medium */
+    font-feature-settings: "ss01", "cv11";
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background-color: #bbf7d0;
+    color: #0a0a0a;
+  }
+  /* theme hides scrollbars app-wide; keep that but preserve scrolling */
+  * {
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
+  }
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Utilities                                                          */
+/* ------------------------------------------------------------------ */
+@utility safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.75rem);
+}
+@utility scrollbar-visible {
+  scrollbar-width: thin;
+  &::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #d4d4d8;
+    border-radius: 9999px;
+  }
+}
+@utility text-balance {
+  text-wrap: balance;
+}
+@utility skeleton {
+  background: linear-gradient(90deg, #f4f4f5 25%, #e4e4e7 37%, #f4f4f5 63%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+@utility map-grid {
+  background-color: #f6f7f8;
+  background-image:
+    linear-gradient(rgba(10, 10, 10, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(10, 10, 10, 0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
