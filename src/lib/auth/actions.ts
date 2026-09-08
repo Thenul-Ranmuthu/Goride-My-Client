@@ -25,7 +25,7 @@ export async function logout() {
   //   credentials: "include", // needed to send the session cookie so the backend knows which session to kill — same requirement as getMe()
   // });
   useAuthStore.getState().setSession(null);
-  window.location.href = "https://localhost:7136/logout";
+  window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/logout`;
 }
 
 export async function refreshCurrentUser(): Promise<User | null> {
