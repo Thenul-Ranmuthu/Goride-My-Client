@@ -14,8 +14,8 @@ export const ROUTES = {
 } as const;
 
 export function identityLoginUrl(returnTo?: string) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "https://localhost:7136";
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "https://goride-api.reddesert-943c7096.southeastasia.azurecontainerapps.io";
+  const appUrl = process.env.NEXT_APP_URL ?? "https://goride-my-client.vercel.app";
   const target = returnTo
     ? `${appUrl}${returnTo.startsWith("/") ? returnTo : `/${returnTo}`}`
     : `${appUrl}/dashboard`;
