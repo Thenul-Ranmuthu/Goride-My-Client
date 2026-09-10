@@ -61,7 +61,7 @@ export default function SelectRole() {
       // is still active, so this is silent - no login prompt shown.
       useAuthStore.getState().setSession(null);
       window.location.replace(
-        `${process.env.NEXT_PUBLIC_API_URL}/login?prompt=login&returnUrl=${encodeURIComponent(`${window.location.origin}/dashboard`)}`,
+        `${process.env.NEXT_PUBLIC_APP_URL}/login?prompt=login&returnUrl=${encodeURIComponent(`${window.location.origin}/dashboard`)}`,
       );
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {

@@ -19,14 +19,21 @@ export async function registerAccount(payload: RegisterPayload): Promise<Session
 // export function logout() {
 //   useAuthStore.getState().setSession(null);
 // }
-export async function logout() {
-  // await fetch("https://localhost:7136/logout", {
-  //   method: "GET",
-  //   credentials: "include", // needed to send the session cookie so the backend knows which session to kill — same requirement as getMe()
-  // });
+// export async function logout() {
+//   // await fetch("https://localhost:7136/logout", {
+//   //   method: "GET",
+//   //   credentials: "include", // needed to send the session cookie so the backend knows which session to kill — same requirement as getMe()
+//   // });
+//   useAuthStore.getState().setSession(null);
+//   window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/logout`;
+// }
+
+
+export function logout() {
   useAuthStore.getState().setSession(null);
-  window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/logout`;
+  window.location.href = "/logout"; // was "https://localhost:7136/logout"
 }
+
 
 export async function refreshCurrentUser(): Promise<User | null> {
   const st = useAuthStore.getState();
