@@ -16,22 +16,11 @@ export async function registerAccount(payload: RegisterPayload): Promise<Session
   return session;
 }
 
-// export function logout() {
-//   useAuthStore.getState().setSession(null);
-// }
-// export async function logout() {
-//   // await fetch("https://localhost:7136/logout", {
-//   //   method: "GET",
-//   //   credentials: "include", // needed to send the session cookie so the backend knows which session to kill — same requirement as getMe()
-//   // });
-//   useAuthStore.getState().setSession(null);
-//   window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/logout`;
-// }
-
 
 export function logout() {
   useAuthStore.getState().setSession(null);
-  window.location.href = "/logout"; // was "https://localhost:7136/logout"
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+  window.location.href = "/logout";
 }
 
 
