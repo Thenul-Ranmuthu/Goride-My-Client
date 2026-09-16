@@ -1,6 +1,212 @@
-import type { DriverProfile, Session, User, VehicleTypeCode } from "@/types";
+import type {
+  DriverProfile,
+  FareOption,
+  Session,
+  User,
+  VehicleTypeCode,
+} from "@/types";
 import { useAuthStore } from "@/lib/auth/session";
 import { normalizeRole } from "@/lib/constants";
+import type { FareEstimate, GoRideApi, Trip } from "./contract";
+import { httpApi } from "./http";
+import { mockApi } from "@/lib/mock/api";
+
+// identity-auth calls (/api/*, /login, /logout, ...) go through next.config.ts's
+// rewrites() as relative, same-origin paths — no NEXT_PUBLIC_API_URL / CORS
+// needed for them. Trip-matching is a separate, non-proxied backend, so it
+// still needs its own absolute URL.
+const TRIP_API_URL =
+  process.env.NEXT_PUBLIC_TRIP_API_URL ?? "http://localhost:8080";
+
+export const API_MODE: "mock" | "http" =
+  process.env.NEXT_PUBLIC_API_MODE === "http" ? "http" : "mock";
+export const IS_MOCK = API_MODE === "mock";
+
+export type {
+  GoRideApi,
+  TripEvent,
+  RegisterPayload,
+  CreateTripPayload,
+  DriverTripAction,
+} from "./contract";
+
+export interface AdminDriverActivity {
+  driverId: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  vehiclePlate: string;
+  vehicleTypeCode: string;
+  licenseNumber: string;
+  licenseExpiry: string;
+  status: number;
+  verifiedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminAuditLog {
+  id: string;
+  actorId: string;
+  action: number;
+  targetId: string;
+  timeStampUtc: string;
+}
+
+export interface InternalUser {
+  id: string;
+  username: string;
+  email: string | null;
+  phone: string | null;
+  roles: string[];
+}
+
+export function errorMessage(
+  e: unknown,
+  fallback = "Something went wrong. Please try again.",
+) {
+  if (
+    e &&
+    typeof e === "object" &&
+    "message" in e &&
+    typeof (e as Error).message === "string"
+  )
+    return (e as Error).message;
+  return fallback;
+}
+
+/* ------------------------------------------------------------------ */
+/* Fare estimation — Trip-Matching microservice                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Calls goride-trip-matching service's POST /fare/estimate endpoint.
+ * Returns FareOption[] with displayName (TUKTUK -> "Tuk Tuk", etc.)
+ * and availability (only TUKTUK available in current stage).
+ */
+export async function estimateFares(
+  pickup: { lat: number; lng: number },
+  destination: { lat: number; lng: number },
+): Promise<FareOption[]> {
+  const baseUrl = (TRIP_API_URL ?? "http://localhost:8080").replace(/\/+$/, "");
+
+  const res = await fetch(`${baseUrl}/fare/estimate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      startLat: pickup.lat,
+      startLng: pickup.lng,
+      endLat: destination.lat,
+      endLng: destination.lng,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(
+      `Fare estimate failed (${res.status})${text ? `: ${text}` : ""}`,
+    );
+  }
+
+  const raw = (await res.json()) as {
+    vehicleTypeId: string;
+    vehicleTypeCode: string;
+    displayName: string;
+    available: boolean;
+    fare: number;
+    distanceKm: number;
+    estimatedDurationMinutes: number;
+  }[];
+
+  return raw.map((r) => ({
+    vehicleTypeId: r.vehicleTypeId,
+    vehicleTypeCode: (r.vehicleTypeCode === "TUKTUK"
+      ? "TUK"
+      : r.vehicleTypeCode) as FareOption["vehicleTypeCode"],
+    displayName:
+      r.displayName ||
+      (r.vehicleTypeCode === "TUKTUK" || r.vehicleTypeCode === "TUK"
+        ? "Tuk Tuk"
+        : r.vehicleTypeCode),
+    available: r.available,
+    fare: r.fare,
+    distanceKm: r.distanceKm,
+    estimatedDurationMinutes: r.estimatedDurationMinutes,
+  }));
+}
+
+/**
+ * Adapter that connects trip estimation directly to the goride-trip-matching backend.
+ */
+function createTripApi(): GoRideApi {
+  const base = IS_MOCK ? mockApi : httpApi;
+
+  return {
+    ...base,
+    trips: {
+      ...base.trips,
+      async estimate(tripId: string): Promise<FareEstimate[]> {
+        let trip: Trip | null = null;
+        try {
+          trip = await base.trips.get(tripId);
+        } catch {
+          // ignore
+        }
+
+        if (trip?.pickup && trip?.destination) {
+          try {
+            // Call the real goride-trip-matching backend
+            const backendOptions = await estimateFares(
+              trip.pickup,
+              trip.destination,
+            );
+            if (backendOptions.length > 0) {
+              return backendOptions.map((opt) => {
+                const code = (
+                  opt.vehicleTypeCode === "TUKTUK" ? "TUK" : opt.vehicleTypeCode
+                ) as VehicleTypeCode;
+                const isAvailable =
+                  opt.available &&
+                  (opt.vehicleTypeCode === "TUKTUK" ||
+                    opt.vehicleTypeCode === "TUK");
+                return {
+                  vehicleTypeId: opt.vehicleTypeId,
+                  vehicleTypeCode: code,
+                  estimatedFare: opt.fare,
+                  distanceKm: opt.distanceKm,
+                  durationMin: opt.estimatedDurationMinutes,
+                  etaMin: isAvailable ? 3 : 0,
+                  breakdown: {
+                    base: Math.round(opt.fare * 0.35),
+                    distance: Math.round(opt.fare * 0.5),
+                    time: Math.round(opt.fare * 0.15),
+                    stops: 0,
+                    waiting: 0,
+                    total: opt.fare,
+                  },
+                };
+              });
+            }
+          } catch (err) {
+            console.warn(
+              "[goride-trip-matching] live estimate failed, falling back to local calculation",
+              err,
+            );
+          }
+        }
+
+        // Fallback: calculate using base logic while enforcing only TUKTUK is allowed
+        const estimates = await base.trips.estimate(tripId);
+        return estimates;
+      },
+    },
+  };
+}
+
+export const api: GoRideApi = createTripApi();
+
+/* ------------------------------------------------------------------ */
+/* Identity & Auth integration (goride-identity-auth)                   */
+/* ------------------------------------------------------------------ */
 
 export interface MeResponse {
   userId: string;
@@ -75,7 +281,6 @@ function normalizeDriverStatus(status: unknown): DriverProfile["status"] {
       : status && typeof status === "object"
         ? (status as Record<string, unknown>)
         : null;
-
   const candidate = raw
     ? readStringValue(
         raw as Record<string, unknown>,
@@ -93,7 +298,6 @@ function normalizeDriverStatus(status: unknown): DriverProfile["status"] {
     "Deactivated",
     "Offline",
   ] as const;
-
   return valid.includes(normalized as (typeof valid)[number])
     ? (normalized as DriverProfile["status"])
     : "PendingVerification";
@@ -142,6 +346,7 @@ function normalizeDriverProfile(
         "PendingVerification",
     ),
     verifiedAt: readStringValue(raw, ["verified_at", "verifiedAt"], "") || null,
+    documents: Array.isArray(raw.documents) ? raw.documents : [],
     online: readBooleanValue(raw, ["online", "is_online"], false),
   };
 }
@@ -238,9 +443,9 @@ function buildSessionFromMe(me: MeResponse): Session {
   };
 }
 
-export async function getMe(): Promise<MeResponse | null> {
+async function fetchMe(sub?: string): Promise<MeResponse | null> {
   const session = useAuthStore.getState().session;
-  if (session?.provider === "local") {
+  if (!sub && session?.provider === "local") {
     return {
       userId: session.user.id,
       name: session.user.name,
@@ -250,7 +455,8 @@ export async function getMe(): Promise<MeResponse | null> {
     };
   }
 
-  const res = await fetch(`/api/me`, {
+  const query = sub ? `?sub=${encodeURIComponent(sub)}` : "";
+  const res = await fetch(`/api/me${query}`, {
     cache: "no-store",
   });
 
@@ -265,8 +471,72 @@ export async function getMe(): Promise<MeResponse | null> {
     ...raw,
     phone: raw.phone ?? raw.phoneNumber ?? raw.phone_number ?? null,
   };
-  useAuthStore.getState().setSession(buildSessionFromMe(me));
+  if (!sub) useAuthStore.getState().setSession(buildSessionFromMe(me));
   return me;
+}
+
+export function getMe(): Promise<MeResponse | null> {
+  return fetchMe();
+}
+
+export async function getInternalUser(
+  sub: string,
+): Promise<InternalUser | null> {
+  const res = await fetch(`/api/internal-users/${encodeURIComponent(sub)}`, {
+    cache: "no-store",
+  });
+  if (res.status === 401 || res.status === 404) return null;
+  if (!res.ok) throw new Error("Failed to fetch internal user");
+
+  const raw = (await res.json()) as {
+    id: string;
+    userName?: string;
+    emails?: { value?: string }[] | string[];
+    phoneNumbers?: { value?: string }[];
+    roles?: { display?: string }[];
+  };
+
+  return {
+    id: raw.id,
+    username: (raw.userName ?? "").replace(/^DEFAULT\//, ""),
+    email: raw.emails?.[0]
+      ? typeof raw.emails[0] === "string"
+        ? raw.emails[0]
+        : (raw.emails[0].value ?? null)
+      : null,
+    phone: raw.phoneNumbers?.[0]?.value ?? null,
+    roles:
+      raw.roles
+        ?.map((role) => role.display)
+        .filter((role): role is string => Boolean(role)) ?? [],
+  };
+}
+
+export async function getAdminActivity(): Promise<AdminDriverActivity[]> {
+  const res = await fetch("/api/adminActivity", { cache: "no-store" });
+  if (res.status === 401 || res.status === 403) return [];
+  if (!res.ok) throw new Error("Failed to fetch driver activity");
+  return (await res.json()) as AdminDriverActivity[];
+}
+
+export async function getAdminAuditLogs(): Promise<AdminAuditLog[]> {
+  const res = await fetch("/api/adminActivity/getLogs", { cache: "no-store" });
+  if (res.status === 401 || res.status === 403) return [];
+  if (!res.ok) throw new Error("Failed to fetch audit logs");
+  return (await res.json()) as AdminAuditLog[];
+}
+
+export async function updateAdminDriverStatus(
+  driverSub: string,
+  statusNum: number,
+): Promise<void> {
+  const res = await fetch(
+    `/api/adminActivity/${encodeURIComponent(driverSub)}/${statusNum}`,
+    {
+      method: "PUT",
+    },
+  );
+  if (!res.ok) throw new Error("Failed to update driver status");
 }
 
 export async function getDriverProfile(

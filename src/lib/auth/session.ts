@@ -27,12 +27,12 @@ export const useAuthStore = create<AuthState>()(
       setSession: (session) => {
         const normalized = session
           ? {
-              ...session,
-              user: {
-                ...session.user,
-                role: normalizeRole(session.user.role) ?? session.user.role,
-              },
-            }
+            ...session,
+            user: {
+              ...session.user,
+              role: normalizeRole(session.user.role) ?? session.user.role,
+            },
+          }
           : null;
         writeRoleCookie(normalized?.user.role ?? null);
         set({ session: normalized });
@@ -50,14 +50,14 @@ export const useAuthStore = create<AuthState>()(
 
         const normalizedSession = state.session
           ? {
-              ...state.session,
-              user: {
-                ...state.session.user,
-                role:
-                  normalizeRole(state.session.user.role) ??
-                  state.session.user.role,
-              },
-            }
+            ...state.session,
+            user: {
+              ...state.session.user,
+              role:
+                normalizeRole(state.session.user.role) ??
+                state.session.user.role,
+            },
+          }
           : null;
 
         if (normalizedSession) state.setSession(normalizedSession);
@@ -79,6 +79,11 @@ export function getSession(): Session | null {
   return useAuthStore.getState().session;
 }
 
+export function getAccessToken(): string | null {
+  return useAuthStore.getState().session?.accessToken ?? null;
+}
+
 export function isSessionExpired(s: Session | null) {
   return !s || (s.expiresAt > 0 && Date.now() > s.expiresAt);
 }
+

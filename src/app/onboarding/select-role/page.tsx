@@ -1,45 +1,3 @@
-// "use client";
-
-// import { useState } from "react";
-// import { selectRole } from "../../../lib/api";
-
-// export default function SelectRole() {
-//   const [submitting, setSubmitting] = useState(false);
-//   const [error, setError] = useState<string | null>(null);
-
-//   async function handleSelect(role: "Driver" | "Rider") {
-//     setSubmitting(true);
-//     setError(null);
-//     try {
-//       await selectRole(role);
-//       // Force a fresh OIDC round-trip so the new roles claim
-//       // gets baked into a new token/cookie. Asgardeo's own session
-//       // is still active, so this is silent - no login prompt shown.
-//       // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-//       window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/login?returnUrl=${encodeURIComponent(`${window.location.origin}/dashboard`)}`;
-//       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-//     } catch (err) {
-//       setError("Something went wrong. Please try again.");
-//       setSubmitting(false);
-//     }
-//   }
-
-//   return (
-//     <main>
-//       <h1>Are you a Rider or a Driver?</h1>
-//       <button disabled={submitting} onClick={() => handleSelect("Rider")}>
-//         I am a Rider
-//       </button>
-//       <br />
-//       <br />
-//       <button disabled={submitting} onClick={() => handleSelect("Driver")}>
-//         I am a Driver
-//       </button>
-//       {error && <p>{error}</p>}
-//     </main>
-//   );
-// }
-
 "use client";
 
 import { useState } from "react";
@@ -60,8 +18,9 @@ export default function SelectRole() {
       // gets baked into a new token/cookie. Asgardeo's own session
       // is still active, so this is silent - no login prompt shown.
       useAuthStore.getState().setSession(null);
+      const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
       window.location.replace(
-        `${process.env.NEXT_PUBLIC_APP_URL}/login?prompt=login&returnUrl=${encodeURIComponent(`${window.location.origin}/dashboard`)}`,
+        `${apiUrl}/login?prompt=login&returnUrl=${encodeURIComponent(`${window.location.origin}/dashboard`)}`,
       );
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {

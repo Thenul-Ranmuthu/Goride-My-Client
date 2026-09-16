@@ -17,7 +17,7 @@ const poppins = localFont({
 });
 
 export const metadata: Metadata = {
-  title: { default: "GoRide — Your ride, on your terms", template: "%s · GoRide" },
+  title: { default: "GoRide ! Your ride, on your terms", template: "%s · GoRide" },
   description:
     "GoRide is a modular, event-driven ride-hailing platform for Sri Lanka: upfront fares, live tracking, card or cash, and SOS safety built in.",
   applicationName: "GoRide",

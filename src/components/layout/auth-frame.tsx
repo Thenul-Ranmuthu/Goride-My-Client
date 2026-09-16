@@ -10,9 +10,9 @@ export interface AuthFrameProps {
 }
 
 /**
- * AuthFrame — the split screen used by login / signup: the form on the left,
- * the GoRide brand panel on the right. Below `lg` the brand panel drops away
- * and the form takes the full width.
+ * AuthFrame — the split screen used by login / register / verify / reset:
+ * the form on the left, the GoRide brand panel on the right. Below `lg` the
+ * brand panel drops away and the form takes the full width.
  */
 export default function AuthFrame({ children, tone = "auth" }: AuthFrameProps) {
   return (

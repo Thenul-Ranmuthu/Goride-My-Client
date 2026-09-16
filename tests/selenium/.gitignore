@@ -1,0 +1,11 @@
+# Live session cookies written by grab_session_cookie.py. Never commit these.
+.sessions/
+
+# Per role Chrome profiles used while signing in
+.chrome-profiles/
+
+# Screenshots, junit.xml and report.html produced by a test run
+evidence/
+
+__pycache__/
+.pytest_cache/

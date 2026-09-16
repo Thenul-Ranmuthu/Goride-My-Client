@@ -1,0 +1,5 @@
+# Raw results, logs and the generated HTML dashboard from a run
+*.jtl
+jmeter.log
+report/
+report-trip/

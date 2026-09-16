@@ -44,7 +44,7 @@ export function BrandPanel({ tone = "auth" }: { tone?: "rider" | "driver" | "aut
   return (
     <div className="relative flex h-full w-full flex-col justify-between overflow-hidden bg-navy-950 p-10 text-white lg:p-14">
       {/* map texture */}
-      <Image src="/illustrations/map.png" alt="" fill sizes="100vw" className="pointer-events-none select-none scale-110 object-cover opacity-[0.09] blur-[2px] mix-blend-screen" priority />
+      <Image src="/illustrations/map.png" alt="" fill sizes="100vw" className="pointer-events-none select-none scale-110 object-cover opacity-[0.09] blur-[2px] mix-blend-screen" priority={false} />
       <div className="pointer-events-none absolute -right-32 -top-32 h-[520px] w-[520px] rounded-full bg-brand-400/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-40 -left-20 h-[420px] w-[420px] rounded-full bg-brand-400/10 blur-3xl" />
 
